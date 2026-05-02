@@ -1,85 +1,1500 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Autonomous Engineering Platform</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f9; color: #333; }
-        .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h1 { border-bottom: 2px solid #0056b3; padding-bottom: 10px; color: #0056b3; }
-        button { background-color: #d9534f; color: white; border: none; padding: 12px 24px; font-size: 16px; border-radius: 4px; cursor: pointer; transition: 0.3s; font-weight: bold;}
-        button:hover { background-color: #c9302c; }
-        button:disabled { background-color: #ccc; cursor: not-allowed; }
-        .terminal { background: #1e1e1e; color: #00ff00; font-family: monospace; padding: 15px; border-radius: 4px; height: 250px; overflow-y: auto; margin-top: 20px; }
-        .terminal p { margin: 5px 0; }
-        .pr-box { display: none; margin-top: 30px; padding: 20px; border: 1px solid #ddd; border-radius: 4px; background: #fafafa; }
-        .adr-content { white-space: pre-wrap; background: #fff; padding: 15px; border: 1px solid #eee; border-radius: 4px; font-family: monospace; }
-        .loader { display: none; margin-left: 15px; font-weight: bold; color: #0056b3; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AEP — Autonomous Engineering Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@300;400;600;700;800&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-void:    #03040a;
+      --bg-panel:   #080c18;
+      --bg-card:    #0d1526;
+      --bg-input:   #0a1020;
+      --border:     rgba(0, 195, 255, 0.15);
+      --border-hot: rgba(0, 195, 255, 0.5);
+      --cyan:       #00c3ff;
+      --cyan-dim:   rgba(0, 195, 255, 0.6);
+      --amber:      #ffab00;
+      --amber-dim:  rgba(255, 171, 0, 0.7);
+      --red:        #ff3d5a;
+      --green:      #00e5a0;
+      --green-dim:  rgba(0, 229, 160, 0.7);
+      --purple:     #a855f7;
+      --text-primary:   #e2eeff;
+      --text-secondary: #6b8ab8;
+      --text-muted:     #3a506b;
+      --font-display: 'Oxanium', sans-serif;
+      --font-mono:    'JetBrains Mono', monospace;
+      --glow-cyan:   0 0 20px rgba(0, 195, 255, 0.3), 0 0 60px rgba(0, 195, 255, 0.1);
+      --glow-amber:  0 0 20px rgba(255, 171, 0, 0.3);
+      --glow-red:    0 0 20px rgba(255, 61, 90, 0.4);
+      --glow-green:  0 0 20px rgba(0, 229, 160, 0.3);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-mono);
+      background: var(--bg-void);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background-image:
+        linear-gradient(rgba(0,195,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,195,255,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.15) 2px,
+        rgba(0,0,0,0.15) 4px
+      );
+      pointer-events: none;
+    }
+
+    .ambient-tl, .ambient-br {
+      position: fixed; width: 600px; height: 600px;
+      border-radius: 50%; pointer-events: none; z-index: 0;
+      opacity: 0.07;
+    }
+    .ambient-tl { top: -200px; left: -200px; background: radial-gradient(circle, #00c3ff 0%, transparent 70%); }
+    .ambient-br { bottom: -200px; right: -200px; background: radial-gradient(circle, #ffab00 0%, transparent 70%); }
+
+    .app-wrapper {
+      position: relative; z-index: 1;
+      max-width: 1400px; margin: 0 auto;
+      padding: 24px 20px;
+    }
+
+    /* ── HEADER ─────────────────────────────── */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 0 28px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 28px;
+    }
+    .logo-group { display: flex; align-items: center; gap: 16px; }
+    .logo-icon {
+      width: 48px; height: 48px;
+      border: 1.5px solid var(--cyan-dim);
+      border-radius: 10px;
+      display: grid; place-items: center;
+      font-size: 22px;
+      box-shadow: var(--glow-cyan);
+      background: rgba(0,195,255,0.05);
+      animation: pulse-border 3s ease-in-out infinite;
+    }
+    @keyframes pulse-border {
+      0%,100% { border-color: var(--cyan-dim); box-shadow: var(--glow-cyan); }
+      50%      { border-color: var(--cyan); box-shadow: 0 0 30px rgba(0,195,255,0.5), 0 0 80px rgba(0,195,255,0.15); }
+    }
+    h1 {
+      font-family: var(--font-display);
+      font-size: 24px; font-weight: 800;
+      letter-spacing: 0.08em;
+      background: linear-gradient(135deg, var(--cyan) 0%, #7af0ff 60%, var(--amber) 100%);
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .header-sub {
+      font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase;
+      color: var(--text-muted); margin-top: 2px;
+    }
+    .status-pill {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 14px; border-radius: 999px;
+      border: 1px solid var(--border); background: var(--bg-card);
+      font-size: 11px; font-family: var(--font-display); letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-secondary);
+    }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+      animation: blink 2s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    /* ── METRICS ROW ─────────────────────────── */
+    .metrics-row {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 12px; margin-bottom: 24px;
+    }
+    .metric-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px 20px;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    .metric-card:hover { border-color: var(--border-hot); box-shadow: var(--glow-cyan); }
+    .metric-label {
+      font-size: 9px; text-transform: uppercase; letter-spacing: 0.2em;
+      color: var(--text-muted); margin-bottom: 6px;
+    }
+    .metric-value {
+      font-family: var(--font-display); font-size: 28px; font-weight: 700;
+      line-height: 1;
+    }
+    .metric-value.cyan   { color: var(--cyan); text-shadow: 0 0 20px rgba(0,195,255,0.4); }
+    .metric-value.amber  { color: var(--amber); text-shadow: 0 0 20px rgba(255,171,0,0.4); }
+    .metric-value.green  { color: var(--green); text-shadow: 0 0 20px rgba(0,229,160,0.4); }
+    .metric-value.purple { color: var(--purple); text-shadow: 0 0 20px rgba(168,85,247,0.4); }
+    .metric-change { font-size: 10px; color: var(--green); margin-top: 4px; }
+
+    /* ── MAIN GRID ───────────────────────────── */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 20px;
+    }
+
+    /* ── PANEL BASE ──────────────────────────── */
+    .panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 12px; overflow: hidden;
+      min-width: 0; 
+    }
+    .panel-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      background: rgba(0,195,255,0.03);
+    }
+    .panel-title {
+      font-family: var(--font-display); font-size: 11px;
+      text-transform: uppercase; letter-spacing: 0.2em;
+      color: var(--cyan);
+    }
+    .panel-badge {
+      font-size: 9px; padding: 3px 8px; border-radius: 999px;
+      background: rgba(0,195,255,0.1); color: var(--cyan);
+      letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .panel-body { padding: 20px; }
+
+    /* ── SOURCE SELECTOR TABS ────────────────── */
+    .source-tabs {
+      display: flex; gap: 0;
+      border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .source-tab {
+      flex: 1; padding: 10px 6px;
+      background: transparent; border: none; cursor: pointer;
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--text-muted); letter-spacing: 0.05em;
+      transition: all 0.2s;
+      border-right: 1px solid var(--border);
+    }
+    .source-tab:last-child { border-right: none; }
+    .source-tab.active {
+      background: rgba(0,195,255,0.1);
+      color: var(--cyan);
+    }
+    .source-tab:hover:not(.active) { color: var(--text-secondary); background: rgba(255,255,255,0.02); }
+
+    /* ── SOURCE PANELS ───────────────────────── */
+    .source-panel { display: none; }
+    .source-panel.active { display: block; }
+
+    /* ── DROPZONE ──────────────────────────────────────────────────────── */
+    .dropzone {
+      display: block;
+      border: 2px dashed var(--border);
+      border-radius: 10px; padding: 32px 20px;
+      text-align: center; cursor: pointer;
+      transition: all 0.3s;
+      background: var(--bg-input);
+      position: relative;
+    }
+    .dropzone:hover, .dropzone.drag-over {
+      border-color: var(--cyan);
+      background: rgba(0,195,255,0.05);
+      box-shadow: inset 0 0 30px rgba(0,195,255,0.05);
+    }
+    
+    #fileInput {
+      display: none;
+    }
+    .dz-icon { font-size: 32px; margin-bottom: 10px; }
+    .dz-text { font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
+    .dz-exts { font-size: 10px; color: var(--text-muted); margin-top: 6px; }
+    .dz-selected {
+      margin-top: 12px; padding: 8px 12px; border-radius: 6px;
+      background: rgba(0,229,160,0.1); border: 1px solid rgba(0,229,160,0.3);
+      color: var(--green); font-size: 11px; display: none;
+    }
+
+    /* ── INPUTS ──────────────────────────────── */
+    .input-group { margin-bottom: 12px; }
+    .input-label { font-size: 10px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.15em; }
+    .text-input {
+      width: 100%; padding: 10px 14px;
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text-primary);
+      font-family: var(--font-mono); font-size: 12px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+      box-sizing: border-box; 
+    }
+    .text-input::placeholder { color: var(--text-muted); }
+    .text-input:focus {
+      border-color: var(--cyan-dim);
+      box-shadow: 0 0 0 3px rgba(0,195,255,0.08);
+    }
+    .input-hint { font-size: 10px; color: var(--text-muted); margin-top: 5px; }
+
+    /* ── BUTTONS ─────────────────────────────── */
+    .btn {
+      width: 100%; padding: 13px;
+      font-family: var(--font-display); font-size: 13px; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      border: none; border-radius: 8px; cursor: pointer;
+      transition: all 0.25s; position: relative; overflow: hidden;
+      box-sizing: border-box;
+    }
+    .btn::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+      opacity: 0; transition: opacity 0.2s;
+    }
+    .btn:hover::before { opacity: 1; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn:disabled::before { display: none; }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0052aa 0%, #0077cc 100%);
+      color: white; box-shadow: 0 4px 20px rgba(0,119,204,0.3);
+    }
+    .btn-primary:not(:disabled):hover { box-shadow: 0 4px 30px rgba(0,195,255,0.4); transform: translateY(-1px); }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #7a0020 0%, #cc0033 100%);
+      color: white; box-shadow: 0 4px 20px rgba(204,0,51,0.3);
+    }
+    .btn-danger:not(:disabled):hover { box-shadow: var(--glow-red); transform: translateY(-1px); }
+
+    .btn-success {
+      background: linear-gradient(135deg, #005c3a 0%, #009960 100%);
+      color: white; box-shadow: 0 4px 20px rgba(0,153,96,0.3);
+    }
+    .btn-success:not(:disabled):hover { box-shadow: var(--glow-green); transform: translateY(-1px); }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border-hot);
+      color: var(--cyan);
+    }
+    .btn-outline:not(:disabled):hover { background: rgba(0,195,255,0.08); }
+
+    .btn-sm {
+      width: auto; padding: 7px 16px;
+      font-size: 10px; border-radius: 6px;
+    }
+
+    /* ── AGENT PIPELINE ──────────────────────── */
+    .pipeline {
+      display: flex; flex-direction: column; gap: 0;
+    }
+    .pipeline-step {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 0;
+      position: relative;
+    }
+    .pipeline-step:not(:last-child):after {
+      content: '';
+      position: absolute; left: 19px; top: 46px;
+      width: 1px; height: 28px;
+      background: var(--border);
+    }
+    .pipeline-step.active::after { background: var(--cyan-dim); }
+    .pipeline-step.done::after { background: var(--green); }
+
+    .step-icon {
+      width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+      display: grid; place-items: center; font-size: 16px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      transition: all 0.4s;
+    }
+    .pipeline-step.active .step-icon {
+      border-color: var(--cyan);
+      box-shadow: var(--glow-cyan);
+      animation: step-pulse 1.5s ease-in-out infinite;
+    }
+    .pipeline-step.done .step-icon {
+      border-color: var(--green);
+      box-shadow: var(--glow-green);
+      background: rgba(0,229,160,0.05);
+    }
+    .pipeline-step.error .step-icon { border-color: var(--red); box-shadow: var(--glow-red); }
+    @keyframes step-pulse {
+      0%,100% { box-shadow: var(--glow-cyan); }
+      50% { box-shadow: 0 0 30px rgba(0,195,255,0.6), 0 0 80px rgba(0,195,255,0.2); }
+    }
+    .step-info { flex: 1; }
+    .step-name { font-size: 12px; color: var(--text-primary); font-family: var(--font-display); letter-spacing: 0.05em; }
+    .step-desc { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+    .step-status {
+      font-size: 9px; padding: 3px 8px; border-radius: 999px;
+      font-family: var(--font-display); letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .step-status.waiting { background: rgba(107,138,184,0.15); color: var(--text-muted); }
+    .step-status.running { background: rgba(0,195,255,0.15); color: var(--cyan); }
+    .step-status.done    { background: rgba(0,229,160,0.15); color: var(--green); }
+    .step-status.error   { background: rgba(255,61,90,0.15);  color: var(--red); }
+
+    /* ── RIGHT COLUMN ────────────────────────── */
+    .right-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; } 
+
+    /* ── TERMINAL ────────────────────────────── */
+    .terminal {
+      background: #010409;
+      border-radius: 0 0 12px 12px;
+      padding: 16px; min-height: 220px; max-height: 280px;
+      overflow-y: auto; font-size: 12px; line-height: 1.7;
+      font-family: var(--font-mono);
+    }
+    .terminal::-webkit-scrollbar { width: 4px; }
+    .terminal::-webkit-scrollbar-track { background: transparent; }
+    .terminal::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .term-line { display: flex; align-items: flex-start; gap: 8px; }
+    .term-prefix { color: var(--text-muted); flex-shrink: 0; user-select: none; }
+    .term-text { color: #a0c4ff; }
+    .term-text.success { color: var(--green); }
+    .term-text.warning { color: var(--amber); }
+    .term-text.error   { color: var(--red); }
+    .term-text.info    { color: var(--cyan); }
+
+    .term-cursor {
+      display: inline-block; width: 8px; height: 14px;
+      background: var(--cyan); margin-left: 2px; vertical-align: middle;
+      animation: cursor-blink 1s step-end infinite;
+    }
+    @keyframes cursor-blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* ── RESULT TABS ─────────────────────────── */
+    .result-tabs {
+      display: flex; gap: 0;
+      border-bottom: 1px solid var(--border);
+      padding: 0 20px;
+      background: rgba(0,195,255,0.02);
+    }
+    .result-tab {
+      padding: 12px 18px; background: none; border: none; cursor: pointer;
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--text-muted); border-bottom: 2px solid transparent;
+      transition: all 0.2s; letter-spacing: 0.05em;
+      position: relative; top: 1px;
+    }
+    .result-tab.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+    .result-tab:hover:not(.active) { color: var(--text-secondary); }
+    .result-tab .tab-dot {
+      display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+      background: var(--amber); margin-left: 6px; vertical-align: middle;
+      display: none;
+    }
+    .result-tab .tab-dot.visible { display: inline-block; }
+
+    /* ── RESULT PANES ──────────────────────────────────────────────────── */
+    .result-pane {
+      display: none;
+      padding: 20px;
+      max-height: 480px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      width: 100%; 
+      box-sizing: border-box;
+    }
+    .result-pane::-webkit-scrollbar { width: 4px; }
+    .result-pane::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .result-pane.active { display: block; }
+
+    /* ── DIFF VIEWER ─────────────────────────── */
+    .diff-viewer {
+      background: #010409; border-radius: 8px;
+      font-family: var(--font-mono); font-size: 12px;
+      overflow: auto; max-height: 340px;
+      max-width: 100%; box-sizing: border-box; 
+    }
+    .diff-viewer::-webkit-scrollbar { width: 4px; height: 4px; }
+    .diff-viewer::-webkit-scrollbar-thumb { background: var(--border); }
+    .diff-line { padding: 2px 12px; line-height: 1.6; white-space: pre; }
+    .diff-line.add    { background: rgba(0,229,160,0.08); color: #7affd4; }
+    .diff-line.remove { background: rgba(255,61,90,0.08);  color: #ff8fa3; }
+    .diff-line.meta   { color: var(--purple); }
+    .diff-line.header { color: var(--amber); font-weight: bold; }
+    .diff-line.normal { color: var(--text-secondary); }
+
+    /* ── ADR VIEWER ──────────────────────────── */
+    .adr-viewer {
+      background: #010409; border-radius: 8px; padding: 20px;
+      font-family: var(--font-mono); font-size: 12px; line-height: 1.8;
+      white-space: pre-wrap; color: #a0c4ff; max-height: 340px; overflow-y: auto;
+      max-width: 100%; box-sizing: border-box; 
+    }
+    .adr-viewer::-webkit-scrollbar { width: 4px; }
+    .adr-viewer::-webkit-scrollbar-thumb { background: var(--border); }
+
+    /* ── MERGE PANEL ───────────────────────────────────────────────────── */
+    .merge-info-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px; margin-bottom: 16px;
+      min-width: 0; 
+    }
+    .merge-info-item {
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px;
+      min-width: 0;                  
+      overflow: hidden;
+    }
+    .merge-info-label {
+      font-size: 9px; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 4px;
+    }
+    .merge-info-value {
+      font-size: 12px; color: var(--text-primary);
+      word-break: break-all;
+      overflow-wrap: anywhere;
+      white-space: normal;           
+    }
+
+    .git-commands-box {
+      background: #010409; border-radius: 8px; padding: 16px;
+      font-family: var(--font-mono); font-size: 11px; line-height: 1.8;
+      color: #7affd4;
+      white-space: pre;
+      overflow-x: auto;              
+      overflow-y: auto;
+      max-height: 160px;
+      border: 1px solid rgba(0,229,160,0.2);
+      max-width: 100%; box-sizing: border-box; 
+    }
+    .git-commands-box::-webkit-scrollbar { height: 4px; width: 4px; }
+    .git-commands-box::-webkit-scrollbar-thumb { background: var(--border); }
+
+    .merge-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .merge-actions .btn-success { flex: 1 1 160px; min-width: 140px; }
+    .merge-actions .btn-outline  { flex: 1 1 120px; min-width: 110px; }
+    .merge-actions .btn-sm       { flex: 0 0 auto; }
+
+    /* ── SEVERITY BADGE ──────────────────────── */
+    .severity-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px; border-radius: 999px; font-size: 10px;
+      font-family: var(--font-display); letter-spacing: 0.12em; text-transform: uppercase;
+    }
+    .severity-badge.critical { background: rgba(255,61,90,0.2);   color: var(--red);    border: 1px solid rgba(255,61,90,0.4); }
+    .severity-badge.high     { background: rgba(255,171,0,0.2);   color: var(--amber);  border: 1px solid rgba(255,171,0,0.4); }
+    .severity-badge.medium   { background: rgba(168,85,247,0.2);  color: var(--purple); border: 1px solid rgba(168,85,247,0.4); }
+    .severity-badge.low      { background: rgba(0,229,160,0.2);   color: var(--green);  border: 1px solid rgba(0,229,160,0.4); }
+    .severity-badge:not(.critical):not(.high):not(.medium):not(.low) {
+      background: rgba(107,138,184,0.2); color: var(--text-secondary);
+      border: 1px solid rgba(107,138,184,0.4);
+    }
+
+    /* ── ISSUE LIST ──────────────────────────── */
+    .issue-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .issue-item {
+      padding: 10px 14px; border-radius: 8px;
+      background: var(--bg-input); border-left: 3px solid;
+      font-size: 11px;
+    }
+    .issue-item.issue   { border-color: var(--red); }
+    .issue-item.fix     { border-color: var(--green); }
+    .issue-item-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 3px; }
+    .issue-item-text  { color: var(--text-primary); line-height: 1.5; }
+
+    /* ── HISTORY ─────────────────────────────── */
+    .history-list { display: flex; flex-direction: column; gap: 8px; }
+    .history-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px; border-radius: 8px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      cursor: pointer; transition: border-color 0.2s;
+    }
+    .history-item:hover { border-color: var(--border-hot); }
+    .history-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .history-dot.passed { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .history-dot.failed { background: var(--red); box-shadow: 0 0 6px var(--red); }
+    .history-meta { flex: 1; min-width: 0; }
+    .history-file { font-size: 11px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .history-time { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+    .history-badge { font-size: 9px; color: var(--text-muted); flex-shrink: 0; }
+
+    /* ── ALERTS ──────────────────────────────── */
+    .alert {
+      padding: 12px 16px; border-radius: 8px; font-size: 11px;
+      display: none; margin-bottom: 12px; line-height: 1.5;
+    }
+    .alert.visible { display: block; }
+    .alert.error   { background: rgba(255,61,90,0.1);  border: 1px solid rgba(255,61,90,0.3);  color: #ff8fa3; }
+    .alert.success { background: rgba(0,229,160,0.1);  border: 1px solid rgba(0,229,160,0.3);  color: var(--green); }
+    .alert.info    { background: rgba(0,195,255,0.08); border: 1px solid rgba(0,195,255,0.2);  color: var(--cyan); }
+
+    /* ── SPINNER ─────────────────────────────── */
+    .spinner {
+      display: none; align-items: center; gap: 10px;
+      font-size: 11px; color: var(--cyan); margin-top: 10px;
+    }
+    .spinner.visible { display: flex; }
+    .spin-ring {
+      width: 16px; height: 16px; border-radius: 50%;
+      border: 2px solid rgba(0,195,255,0.2);
+      border-top-color: var(--cyan);
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── SUCCESS FLASH ───────────────────────── */
+    .success-flash {
+      position: fixed; top: 24px; right: 24px; z-index: 999;
+      padding: 14px 20px; border-radius: 10px;
+      background: rgba(0,229,160,0.15); border: 1px solid rgba(0,229,160,0.4);
+      color: var(--green); font-size: 12px; font-family: var(--font-display);
+      letter-spacing: 0.05em;
+      transform: translateX(200%); transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+      box-shadow: 0 8px 40px rgba(0,229,160,0.2);
+    }
+    .success-flash.show { transform: translateX(0); }
+
+    /* ── EMPTY STATE ─────────────────────────── */
+    .empty-state {
+      text-align: center; padding: 40px 20px;
+      color: var(--text-muted); font-size: 11px; line-height: 1.7;
+    }
+    .empty-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.5; }
+
+    /* ── COPY BTN ────────────────────────────── */
+    .copy-btn {
+      background: rgba(0,195,255,0.1); border: 1px solid rgba(0,195,255,0.3);
+      color: var(--cyan); padding: 4px 10px; border-radius: 4px;
+      font-family: var(--font-mono); font-size: 10px; cursor: pointer;
+      transition: all 0.2s;
+    }
+    .copy-btn:hover { background: rgba(0,195,255,0.2); }
+
+    /* ── SECTION SEP / TAG ───────────────────── */
+    .section-sep { height: 1px; background: var(--border); margin: 16px 0; }
+    .tag {
+      display: inline-block; padding: 2px 8px;
+      background: rgba(0,195,255,0.08); border: 1px solid var(--border);
+      border-radius: 4px; font-size: 10px; color: var(--cyan);
+    }
+
+    /* ── RESPONSIVE ──────────────────────────── */
+    @media (max-width: 900px) {
+      .main-grid { grid-template-columns: 1fr; }
+      .metrics-row { grid-template-columns: repeat(2,1fr); }
+    }
+    @media (max-width: 500px) {
+      .metrics-row { grid-template-columns: 1fr 1fr; }
+      header { flex-direction: column; gap: 12px; align-items: flex-start; }
+    }
+
+    /* Scrollbar global */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>Autonomous Engineering Platform</h1>
-    <p>Simulate a developer pushing code that breaks the build, and watch the agents fix it.</p>
-    
-    <button id="triggerBtn" onclick="triggerIncident()">🔥 Simulate CI Pipeline Failure</button>
-    <span class="loader" id="loader">Agents are working... Please wait.</span>
+<div class="ambient-tl"></div>
+<div class="ambient-br"></div>
 
-    <h3>Agent Activity Logs</h3>
-    <div class="terminal" id="terminal">
-        <p>Waiting for events...</p>
+<div class="success-flash" id="successFlash">✅ Operation complete!</div>
+
+<div class="app-wrapper">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo-group">
+      <div class="logo-icon">⚡</div>
+      <div>
+        <h1>AEP</h1>
+        <div class="header-sub">Autonomous Engineering Platform · v2.0</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <div class="status-pill" id="healthPill">
+        <div class="status-dot"></div>
+        <span>Systems Operational</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- METRICS -->
+  <div class="metrics-row">
+    <div class="metric-card">
+      <div class="metric-label">Incidents Resolved</div>
+      <div class="metric-value cyan" id="metricResolved">0</div>
+      <div class="metric-change" id="metricResolvedChange">—</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Issues Detected</div>
+      <div class="metric-value amber" id="metricIssues">0</div>
+      <div class="metric-change" id="metricIssuesChange">—</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">ADRs Generated</div>
+      <div class="metric-value purple" id="metricADRs">0</div>
+      <div class="metric-change" id="metricADRsChange">—</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Time Saved (est.)</div>
+      <div class="metric-value green" id="metricTime">0m</div>
+      <div class="metric-change" id="metricTimeChange">—</div>
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="main-grid">
+
+    <!-- LEFT COLUMN -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+
+      <!-- SOURCE INPUT PANEL -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">⚙ Trigger Source</span>
+          <span class="panel-badge" id="sourceBadge">Simulation</span>
+        </div>
+        <div class="panel-body">
+
+          <div class="source-tabs">
+            <button class="source-tab active" onclick="switchSource('simulate')" id="tab-simulate">🔥 Simulate</button>
+            <button class="source-tab" onclick="switchSource('upload')" id="tab-upload">📁 Upload</button>
+            <button class="source-tab" onclick="switchSource('github')" id="tab-github">🐙 GitHub</button>
+          </div>
+
+          <!-- Simulate -->
+          <div class="source-panel active" id="panel-simulate">
+            <div style="text-align:center;padding:12px 0 20px;">
+              <div style="font-size:36px;margin-bottom:12px;">🔥</div>
+              <div style="font-size:12px;color:var(--text-secondary);line-height:1.7;">
+                Simulate a PostgreSQL connection timeout CI failure.<br>
+                Watch the agents debug, fix, and document the incident.
+              </div>
+            </div>
+            <button type="button" class="btn btn-danger" id="btn-simulate" onclick="triggerSimulate()">
+              Simulate CI Pipeline Failure
+            </button>
+          </div>
+
+          <!-- Upload -->
+          <div class="source-panel" id="panel-upload">
+            <label class="dropzone" id="dropzone" for="fileInput">
+              <input
+                type="file"
+                id="fileInput"
+                accept=".py,.js,.ts,.java,.go,.rb,.cpp,.c,.cs,.php,.rs,.kt,.swift"
+                onchange="handleFileSelect(event)"
+              />
+              <div class="dz-icon">📂</div>
+              <div class="dz-text">Drop your code file here<br><span style="color:var(--text-muted)">or click to browse</span></div>
+              <div class="dz-exts">.py .js .ts .java .go .rb .rs .cpp .cs .php</div>
+              <div class="dz-selected" id="dzSelected"></div>
+            </label>
+            <div style="height:12px;"></div>
+            <div class="alert" id="uploadAlert"></div>
+            <button type="button" class="btn btn-primary" id="btn-upload" onclick="triggerUpload()" disabled>
+              Analyze File
+            </button>
+          </div>
+
+          <!-- GitHub -->
+          <div class="source-panel" id="panel-github">
+            <div class="input-group">
+              <div class="input-label">Repository URL</div>
+              <input type="text" class="text-input" id="githubUrl"
+                placeholder="https://github.com/owner/repo" />
+              <div class="input-hint">Public repositories only (or set GITHUB_TOKEN env var)</div>
+            </div>
+            <div class="input-group">
+              <div class="input-label">File Path <span style="color:var(--text-muted);font-size:9px;">(Optional)</span></div>
+              <input type="text" class="text-input" id="githubFilePath"
+                placeholder="src/app.py  (leave blank to auto-detect)" />
+            </div>
+            <div class="alert" id="githubAlert"></div>
+            <button type="button" class="btn btn-primary" id="btn-github" onclick="triggerGithub()">
+              Import &amp; Analyze
+            </button>
+          </div>
+
+          <div class="spinner" id="mainSpinner">
+            <div class="spin-ring"></div>
+            <span id="spinnerText">Agents working...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- AGENT PIPELINE -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">◈ Agent Pipeline</span>
+          <span class="panel-badge" id="pipelineBadge">Idle</span>
+        </div>
+        <div class="panel-body">
+          <div class="pipeline">
+            <div class="pipeline-step" id="step-ingest">
+              <div class="step-icon">📥</div>
+              <div class="step-info">
+                <div class="step-name">Ingestion</div>
+                <div class="step-desc">Parse & load source</div>
+              </div>
+              <span class="step-status waiting" id="ss-ingest">Waiting</span>
+            </div>
+            <div class="pipeline-step" id="step-debug">
+              <div class="step-icon">🛠️</div>
+              <div class="step-info">
+                <div class="step-name">CLI Debugger</div>
+                <div class="step-desc">Static analysis & fix</div>
+              </div>
+              <span class="step-status waiting" id="ss-debug">Waiting</span>
+            </div>
+            <div class="pipeline-step" id="step-assess">
+              <div class="step-icon">🧠</div>
+              <div class="step-info">
+                <div class="step-name">Orchestrator</div>
+                <div class="step-desc">Assess structural impact</div>
+              </div>
+              <span class="step-status waiting" id="ss-assess">Waiting</span>
+            </div>
+            <div class="pipeline-step" id="step-adr">
+              <div class="step-icon">📝</div>
+              <div class="step-info">
+                <div class="step-name">ADR Generator</div>
+                <div class="step-desc">Gemini-powered docs</div>
+              </div>
+              <span class="step-status waiting" id="ss-adr">Waiting</span>
+            </div>
+            <div class="pipeline-step" id="step-pr">
+              <div class="step-icon">🚀</div>
+              <div class="step-info">
+                <div class="step-name">Human Review</div>
+                <div class="step-desc">Pull request + merge</div>
+              </div>
+              <span class="step-status waiting" id="ss-pr">Waiting</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HISTORY -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">🕑 Run History</span>
+          <button class="copy-btn" onclick="clearHistory()">Clear</button>
+        </div>
+        <div class="panel-body" style="padding:12px 16px;">
+          <div class="history-list" id="historyList">
+            <div class="empty-state" style="padding:20px 10px;">
+              <div class="empty-icon">📋</div>
+              No runs yet
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
 
-    <div class="pr-box" id="prBox">
-        <h2>🚀 Pull Request Ready for Human Review</h2>
-        <p><strong>CI Status:</strong> <span style="color: green; font-weight: bold;">PASSED</span></p>
-        <h3>Generated Architecture Decision Record (ADR)</h3>
-        <div class="adr-content" id="adrContent"></div>
-        <br>
-        <button style="background-color: #5cb85c;" onclick="alert('Merge Approved!')">Approve & Merge</button>
+    <!-- RIGHT COLUMN -->
+    <div class="right-col">
+
+      <!-- TERMINAL -->
+      <div class="panel" style="overflow:visible;">
+        <div class="panel-header" style="border-radius:12px 12px 0 0;">
+          <span class="panel-title">⬛ Agent Activity Log</span>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span id="ciStatusBadge" class="step-status waiting">IDLE</span>
+            <button class="copy-btn" onclick="copyTerminal()">Copy</button>
+          </div>
+        </div>
+        <div class="terminal" id="terminal">
+          <div class="term-line">
+            <span class="term-prefix">$</span>
+            <span class="term-text info">AEP v2.0 ready. Select a source and trigger the pipeline.</span>
+          </div>
+          <div class="term-line"><span class="term-cursor"></span></div>
+        </div>
+      </div>
+
+      <!-- RESULTS PANEL -->
+      <div class="panel" id="resultsPanel" style="display:none;">
+        <div class="result-tabs">
+          <button class="result-tab active" onclick="switchResultTab('analysis')" id="rtab-analysis">
+            Analysis
+            <span class="tab-dot" id="dot-analysis"></span>
+          </button>
+          <button class="result-tab" onclick="switchResultTab('diff')" id="rtab-diff">
+            Code Diff
+            <span class="tab-dot" id="dot-diff"></span>
+          </button>
+          <button class="result-tab" onclick="switchResultTab('adr')" id="rtab-adr">
+            ADR
+            <span class="tab-dot" id="dot-adr"></span>
+          </button>
+          <button class="result-tab" onclick="switchResultTab('merge')" id="rtab-merge">
+            Approve &amp; Merge
+            <span class="tab-dot" id="dot-merge"></span>
+          </button>
+        </div>
+
+        <!-- ANALYSIS TAB -->
+        <div class="result-pane active" id="rpane-analysis">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap;">
+            <div>
+              <div style="font-family:var(--font-display);font-size:13px;color:var(--text-primary);margin-bottom:6px;" id="analysisSummary">—</div>
+              <span class="severity-badge" id="severityBadge">—</span>
+            </div>
+            <div class="tag" id="analysisSource" style="flex-shrink:0;">source: —</div>
+          </div>
+          <ul class="issue-list" id="issueList"></ul>
+        </div>
+
+        <!-- DIFF TAB -->
+        <div class="result-pane" id="rpane-diff">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:11px;color:var(--text-muted);word-break:break-all;" id="diffMeta">—</span>
+            <button class="copy-btn" onclick="copyDiff()">Copy diff</button>
+          </div>
+          <div class="diff-viewer" id="diffViewer"></div>
+        </div>
+
+        <!-- ADR TAB -->
+        <div class="result-pane" id="rpane-adr">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <span style="font-size:11px;color:var(--text-secondary);">Architecture Decision Record</span>
+            <button class="copy-btn" onclick="downloadADR()">⬇ Download .md</button>
+          </div>
+          <div class="adr-viewer" id="adrViewer"></div>
+        </div>
+
+        <!-- MERGE TAB -->
+        <div class="result-pane" id="rpane-merge">
+          <div id="preMerge">
+            <div class="merge-info-grid" id="mergeInfoGrid"></div>
+            <div style="margin-bottom:12px;">
+              <div class="input-label" style="margin-bottom:6px;">Commit Message</div>
+              <input type="text" class="text-input" id="mergeCommitInput" placeholder="Enter commit message..." />
+            </div>
+            <div class="alert success visible" style="margin-bottom:16px;">
+              ✅ CI checks passed. All tests green. Ready for merge.
+            </div>
+            <div class="merge-actions">
+              <button class="btn btn-success" onclick="approveMerge()">Approve &amp; Merge</button>
+              <button class="btn btn-outline btn-sm" onclick="downloadPatch()">⬇ .patch</button>
+            </div>
+          </div>
+          <div id="postMerge" style="display:none;">
+            <div class="alert success visible" style="margin-bottom:16px;">
+              🎉 Merge approved! Patch and git commands generated below.
+            </div>
+            <div class="merge-info-grid" id="postMergeGrid"></div>
+            <div style="margin-bottom:10px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+                <div class="input-label">Git Commands</div>
+                <button class="copy-btn" onclick="copyGitCommands()">Copy</button>
+              </div>
+              <div class="git-commands-box" id="gitCommandsBox"></div>
+            </div>
+            <div class="merge-actions">
+              <button class="btn btn-outline" onclick="downloadPatchPost()">⬇ Download .patch</button>
+              <button class="btn btn-outline btn-sm" onclick="resetMerge()">Reset</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
     </div>
+  </div>
 </div>
 
 <script>
-    async function triggerIncident() {
-        const btn = document.getElementById('triggerBtn');
-        const loader = document.getElementById('loader');
-        const terminal = document.getElementById('terminal');
-        const prBox = document.getElementById('prBox');
-        
-        btn.disabled = true;
-        loader.style.display = 'inline';
-        prBox.style.display = 'none';
-        terminal.innerHTML = '<p style="color: yellow;">Initializing incident response...</p>';
+// ══════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════
+let state = {
+  currentData: null,
+  metrics: { resolved: 0, issues: 0, adrs: 0, timeSaved: 0 },
+  history: [],
+  selectedFile: null,
+  mergeData: null,
+};
 
-        try {
-            const response = await fetch('/api/trigger-incident', { method: 'POST' });
-            const data = await response.json();
-            
-            // Render Logs
-            terminal.innerHTML = '';
-            data.logs.forEach(log => {
-                const p = document.createElement('p');
-                p.textContent = log;
-                terminal.appendChild(p);
-            });
+(function() {
+  const saved = sessionStorage.getItem('aep_metrics');
+  if (saved) state.metrics = JSON.parse(saved);
+  const savedHistory = sessionStorage.getItem('aep_history');
+  if (savedHistory) { state.history = JSON.parse(savedHistory); renderHistory(); }
+  updateMetrics();
+})();
 
-            // Render Pull Request & ADR
-            if (data.generated_adr) {
-                document.getElementById('adrContent').textContent = data.generated_adr;
-                prBox.style.display = 'block';
-            }
+// ══════════════════════════════════════════════════
+// SOURCE SWITCHING
+// ══════════════════════════════════════════════════
+function switchSource(id) {
+  ['simulate','upload','github'].forEach(s => {
+    document.getElementById('panel-' + s).classList.remove('active');
+    document.getElementById('tab-' + s).classList.remove('active');
+  });
+  document.getElementById('panel-' + id).classList.add('active');
+  document.getElementById('tab-' + id).classList.add('active');
+  const labels = { simulate: 'Simulation', upload: 'File Upload', github: 'GitHub' };
+  document.getElementById('sourceBadge').textContent = labels[id];
+}
 
-        } catch (error) {
-            terminal.innerHTML += `<p style="color: red;">Error connecting to backend: ${error.message}</p>`;
-        } finally {
-            btn.disabled = false;
-            loader.style.display = 'none';
-        }
+// ══════════════════════════════════════════════════
+// FILE UPLOAD
+// ══════════════════════════════════════════════════
+const dropzone = document.getElementById('dropzone');
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault(); dropzone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) { state.selectedFile = file; updateDropzoneUI(file); }
+});
+
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) { 
+    state.selectedFile = file; 
+    updateDropzoneUI(file); 
+  }
+  e.target.value = '';
+}
+
+function updateDropzoneUI(file) {
+  const el = document.getElementById('dzSelected');
+  el.textContent = `✓ ${file.name} (${(file.size/1024).toFixed(1)} KB)`;
+  el.style.display = 'block';
+  document.getElementById('btn-upload').disabled = false;
+  setAlert('uploadAlert', '', '');
+}
+
+// ══════════════════════════════════════════════════
+// TRIGGERS
+// ══════════════════════════════════════════════════
+async function triggerSimulate() {
+  await runPipeline('/api/trigger-incident', null, 'simulated');
+}
+
+async function triggerUpload() {
+  if (!state.selectedFile) return;
+  const formData = new FormData();
+  formData.append('file', state.selectedFile);
+  await runPipeline('/api/import-file', formData, 'upload', state.selectedFile.name);
+}
+
+async function triggerGithub() {
+  const url = document.getElementById('githubUrl').value.trim();
+  const filePath = document.getElementById('githubFilePath').value.trim();
+  if (!url) { setAlert('githubAlert', 'error', 'Please enter a GitHub repository URL.'); return; }
+  if (!url.includes('github.com')) { setAlert('githubAlert', 'error', 'URL must be a GitHub repository URL.'); return; }
+  setAlert('githubAlert', '', '');
+  const body = JSON.stringify({ repo_url: url, file_path: filePath });
+  await runPipeline('/api/import-github', body, 'github', url.split('/').slice(-2).join('/'));
+}
+
+async function runPipeline(endpoint, body, sourceType, label = 'ci-simulation') {
+  setLoading(true);
+  resetPipeline();
+  resetResultsPanel();
+  clearTerminal();
+  addTermLine('info', `► Triggering pipeline for: ${label}`);
+
+  const steps = ['ingest','debug','assess','adr','pr'];
+  const autoSteps = ['ingest','debug','assess','adr']; // UI Animation isolates the Human Review step
+  const stepDelays = [200, 600, 1200, 1800];
+  const animationTimeouts = []; // FIX: Array to store timeout IDs
+  
+  stepDelays.forEach((delay, i) => {
+    const tid = setTimeout(() => {
+      if (i > 0) setStepStatus(autoSteps[i-1], 'done');
+      setStepStatus(autoSteps[i], 'running');
+      document.getElementById('pipelineBadge').textContent = 'Running...';
+    }, delay);
+    animationTimeouts.push(tid); // Store the ID
+  });
+
+  try {
+    const fetchOpts = {};
+    if (body instanceof FormData) {
+      fetchOpts.method = 'POST';
+      fetchOpts.body = body;
+    } else if (body) {
+      fetchOpts.method = 'POST';
+      fetchOpts.headers = { 'Content-Type': 'application/json' };
+      fetchOpts.body = body;
+    } else {
+      fetchOpts.method = 'POST';
     }
-</script>
 
+    const resp = await fetch(endpoint, fetchOpts);
+    const data = await resp.json();
+
+    // FIX: Clear pending UI animations immediately when the API returns 
+    // to prevent old timeouts from overwriting the 'done' states.
+    animationTimeouts.forEach(clearTimeout);
+
+    if (!resp.ok) {
+      const msg = data.detail || 'Backend error';
+      addTermLine('error', `✗ Error: ${msg}`);
+      setAlert(sourceType === 'github' ? 'githubAlert' : (sourceType === 'upload' ? 'uploadAlert' : ''), 'error', msg);
+      steps.forEach(s => setStepStatus(s, 'waiting'));
+      document.getElementById('pipelineBadge').textContent = 'Error';
+      setLoading(false);
+      return;
+    }
+
+    state.currentData = data;
+
+    // AI steps are completed, Human Review remains waiting
+    autoSteps.forEach(s => setStepStatus(s, 'done'));
+    setStepStatus('pr', 'waiting');
+    document.getElementById('pipelineBadge').textContent = 'Awaiting Review';
+
+    setTimeout(() => {
+      clearTerminal();
+      renderLogs(data.logs || []);
+    }, 300);
+
+    renderResults(data, label, sourceType);
+    updateMetricsFromData(data);
+    addToHistory(label, data);
+
+    document.getElementById('resultsPanel').style.display = 'block';
+
+    const ciBadge = document.getElementById('ciStatusBadge');
+    ciBadge.textContent = data.ci_status || 'PASSED';
+    ciBadge.className = 'step-status ' + (data.ci_status === 'PASSED' ? 'done' : 'error');
+
+    showFlash('Analysis complete! Awaiting approval.');
+
+  } catch(e) {
+    animationTimeouts.forEach(clearTimeout); // Clear timeouts on error too
+    addTermLine('error', `✗ Network error: ${e.message}`);
+    addTermLine('error', '  Make sure the FastAPI server is running on port 8000.');
+    steps.forEach(s => setStepStatus(s, 'waiting'));
+    document.getElementById('pipelineBadge').textContent = 'Error';
+  }
+
+  setLoading(false);
+}
+
+// ══════════════════════════════════════════════════
+// RENDER FUNCTIONS
+// ══════════════════════════════════════════════════
+function renderLogs(logs) {
+  logs.forEach((log, i) => {
+    setTimeout(() => {
+      let cls = '';
+      if (log.includes('✅') || log.includes('Passed') || log.includes('success')) cls = 'success';
+      else if (log.includes('ERROR') || log.includes('✗') || log.includes('FATAL')) cls = 'error';
+      else if (log.includes('->')) cls = 'info';
+      else if (log.includes('⚠') || log.includes('WARNING')) cls = 'warning';
+      addTermLine(cls, log);
+    }, i * 60);
+  });
+}
+
+function renderResults(data, label, sourceType) {
+  const summary = data.analysis_summary || 'Analysis complete.';
+  document.getElementById('analysisSummary').textContent = summary;
+
+  let rawSev = String(data.severity || 'low').toLowerCase();
+  let sev = 'low';
+  if (rawSev.includes('critical')) sev = 'critical';
+  else if (rawSev.includes('high')) sev = 'high';
+  else if (rawSev.includes('medium')) sev = 'medium';
+  else if (rawSev.includes('low')) sev = 'low';
+
+  console.debug('[AEP] severity from API:', data.severity, '→ normalised:', sev);
+
+  const sevBadge = document.getElementById('severityBadge');
+  sevBadge.className = 'severity-badge ' + sev;
+  sevBadge.textContent = '● ' + sev.toUpperCase() + ' SEVERITY';
+
+  document.getElementById('analysisSource').textContent = 'source: ' + sourceType;
+
+  const issueList = document.getElementById('issueList');
+  issueList.innerHTML = '';
+  const issues = data.detected_issues || [];
+  const fixes = data.suggested_fixes || [];
+  issues.forEach(issue => {
+    const li = document.createElement('li');
+    li.className = 'issue-item issue';
+    li.innerHTML = `<div class="issue-item-label">⚠ Issue Detected</div><div class="issue-item-text">${escHtml(issue)}</div>`;
+    issueList.appendChild(li);
+  });
+  fixes.forEach(fix => {
+    const li = document.createElement('li');
+    li.className = 'issue-item fix';
+    li.innerHTML = `<div class="issue-item-label">✓ Fix Applied</div><div class="issue-item-text">${escHtml(fix)}</div>`;
+    issueList.appendChild(li);
+  });
+  if (!issues.length && !fixes.length) {
+    issueList.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div>No issues returned</div>';
+  }
+
+  const diff = data.diff_content || '';
+  renderDiff(diff);
+  document.getElementById('diffMeta').textContent = `File: ${data.file_name || 'unknown'} · Commit: ${data.commit_message || '—'}`;
+  document.getElementById('dot-diff').classList.toggle('visible', !!diff);
+
+  const adr = data.generated_adr || '';
+  document.getElementById('adrViewer').textContent = adr || '— No ADR generated (structural change not detected or Gemini API key not set) —';
+  document.getElementById('dot-adr').classList.toggle('visible', !!adr);
+
+  setupMergeTab(data);
+  document.getElementById('dot-merge').classList.add('visible');
+}
+
+function renderDiff(diff) {
+  const viewer = document.getElementById('diffViewer');
+  if (!diff) { viewer.innerHTML = '<div class="diff-line normal">— No diff available —</div>'; return; }
+  viewer.innerHTML = diff.split('\n').map(line => {
+    let cls = 'normal';
+    if (line.startsWith('+++') || line.startsWith('---')) cls = 'header';
+    else if (line.startsWith('diff') || line.startsWith('index')) cls = 'meta';
+    else if (line.startsWith('@@')) cls = 'meta';
+    else if (line.startsWith('+')) cls = 'add';
+    else if (line.startsWith('-')) cls = 'remove';
+    return `<div class="diff-line ${cls}">${escHtml(line)}</div>`;
+  }).join('');
+}
+
+function setupMergeTab(data) {
+  document.getElementById('preMerge').style.display = 'block';
+  document.getElementById('postMerge').style.display = 'none';
+
+  const grid = document.getElementById('mergeInfoGrid');
+  grid.innerHTML = '';
+  const infos = [
+    { label: 'File',         value: data.file_name || 'simulated' },
+    { label: 'CI Status',    value: data.ci_status || 'PASSED' },
+    { label: 'Severity',     value: (data.severity || 'low').toUpperCase() },
+    { label: 'Issues Fixed', value: (data.detected_issues || []).length + ' issue(s)' },
+  ];
+  infos.forEach(({ label, value }) => {
+    grid.innerHTML += `<div class="merge-info-item">
+      <div class="merge-info-label">${label}</div>
+      <div class="merge-info-value">${escHtml(value)}</div>
+    </div>`;
+  });
+
+  document.getElementById('mergeCommitInput').value = data.commit_message || 'fix: automated improvements';
+}
+
+// ══════════════════════════════════════════════════
+// APPROVE & MERGE
+// ══════════════════════════════════════════════════
+async function approveMerge() {
+  const d = state.currentData;
+  if (!d) return;
+  const commitMsg = document.getElementById('mergeCommitInput').value.trim() || d.commit_message || 'fix: automated fix';
+
+  const resp = await fetch('/api/approve-merge', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      commit_message: commitMsg,
+      patch_content: d.patch_content || d.diff_content || '',
+      adr_content: d.generated_adr || '',
+      file_name: d.file_name || 'fix',
+    })
+  });
+
+  if (!resp.ok) { showFlash('Merge API error — is server running?'); return; }
+  const mergeData = await resp.json();
+  state.mergeData = mergeData;
+
+  document.getElementById('preMerge').style.display = 'none';
+  document.getElementById('postMerge').style.display = 'block';
+
+  const pg = document.getElementById('postMergeGrid');
+  pg.innerHTML = '';
+  const { merge_summary: ms, branch_name } = mergeData;
+  const items = [
+    { label: 'Branch',       value: branch_name },
+    { label: 'Commit',       value: ms.commit },
+    { label: 'Files Changed',value: ms.files_changed + ' file(s)' },
+    { label: 'Timestamp',    value: mergeData.timestamp },
+  ];
+  items.forEach(({ label, value }) => {
+    pg.innerHTML += `<div class="merge-info-item">
+      <div class="merge-info-label">${label}</div>
+      <div class="merge-info-value">${escHtml(value)}</div>
+    </div>`;
+  });
+
+  document.getElementById('gitCommandsBox').textContent = mergeData.git_commands;
+  document.getElementById('rpane-merge').scrollTop = 0;
+
+  state.metrics.resolved++;
+  saveMetrics(); updateMetrics();
+  showFlash('🚀 Merge approved! Git commands ready.');
+
+  // Final step completion is triggered specifically after human action
+  setStepStatus('pr', 'done');
+  document.getElementById('pipelineBadge').textContent = 'Complete ✓';
+}
+
+function downloadPatch() {
+  const d = state.currentData;
+  if (!d) return;
+  downloadText(d.patch_content || d.diff_content || '# no patch', `fix_${Date.now()}.patch`);
+}
+function downloadPatchPost() {
+  if (!state.mergeData) return;
+  downloadText(state.mergeData.patch_file_content, `autonomous_fix_${state.mergeData.timestamp}.patch`);
+}
+function copyGitCommands() {
+  if (!state.mergeData) return;
+  navigator.clipboard.writeText(state.mergeData.git_commands);
+  showFlash('Git commands copied!');
+}
+function resetMerge() {
+  document.getElementById('preMerge').style.display = 'block';
+  document.getElementById('postMerge').style.display = 'none';
+}
+
+// ══════════════════════════════════════════════════
+// ADR EXPORT
+// ══════════════════════════════════════════════════
+function downloadADR() {
+  const adr = document.getElementById('adrViewer').textContent;
+  if (!adr || adr.startsWith('—')) { showFlash('No ADR to download.'); return; }
+  downloadText(adr, `ADR_${Date.now()}.md`);
+}
+
+// ══════════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════════
+function switchResultTab(id) {
+  document.querySelectorAll('.result-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.result-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('rtab-' + id).classList.add('active');
+  document.getElementById('rpane-' + id).classList.add('active');
+}
+
+// ══════════════════════════════════════════════════
+// METRICS
+// ══════════════════════════════════════════════════
+function updateMetricsFromData(data) {
+  const issueCount = (data.detected_issues || []).length;
+  const hasADR = !!data.generated_adr;
+  state.metrics.issues += issueCount;
+  if (hasADR) state.metrics.adrs++;
+  state.metrics.timeSaved += issueCount > 0 ? (issueCount * 12 + (hasADR ? 45 : 0)) : 15;
+  saveMetrics(); updateMetrics();
+}
+
+function updateMetrics() {
+  const { resolved, issues, adrs, timeSaved } = state.metrics;
+  animateNum('metricResolved', resolved);
+  animateNum('metricIssues', issues);
+  animateNum('metricADRs', adrs);
+  document.getElementById('metricTime').textContent = timeSaved >= 60 ? `${(timeSaved/60).toFixed(1)}h` : `${timeSaved}m`;
+  if (resolved > 0 || issues > 0) {
+    document.getElementById('metricResolvedChange').textContent = `↑ ${resolved} total`;
+    document.getElementById('metricIssuesChange').textContent = `${issues} detected`;
+    document.getElementById('metricADRsChange').textContent = `${adrs} docs created`;
+    document.getElementById('metricTimeChange').textContent = 'vs. manual review';
+  }
+}
+function animateNum(id, target) {
+  const el = document.getElementById(id);
+  const current = parseInt(el.textContent) || 0;
+  if (current === target) return;
+  let start = current, step = 0;
+  const steps = 20;
+  const interval = setInterval(() => {
+    step++;
+    el.textContent = Math.round(start + (target - start) * (step / steps));
+    if (step >= steps) { el.textContent = target; clearInterval(interval); }
+  }, 30);
+}
+function saveMetrics() {
+  sessionStorage.setItem('aep_metrics', JSON.stringify(state.metrics));
+}
+
+// ══════════════════════════════════════════════════
+// HISTORY
+// ══════════════════════════════════════════════════
+function addToHistory(label, data) {
+  const item = {
+    label: label,
+    time: new Date().toLocaleTimeString(),
+    status: data.ci_status,
+    severity: data.severity,
+  };
+  state.history.unshift(item);
+  if (state.history.length > 10) state.history.pop();
+  sessionStorage.setItem('aep_history', JSON.stringify(state.history));
+  renderHistory();
+}
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  if (!state.history.length) {
+    list.innerHTML = '<div class="empty-state" style="padding:20px 10px;"><div class="empty-icon">📋</div>No runs yet</div>';
+    return;
+  }
+  list.innerHTML = state.history.map(h => `
+    <div class="history-item">
+      <div class="history-dot ${h.status === 'PASSED' ? 'passed' : 'failed'}"></div>
+      <div class="history-meta">
+        <div class="history-file">${escHtml(h.label)}</div>
+        <div class="history-time">${h.time} · ${(h.severity || 'low').toUpperCase()}</div>
+      </div>
+      <span class="history-badge">${h.status}</span>
+    </div>
+  `).join('');
+}
+function clearHistory() {
+  state.history = [];
+  sessionStorage.removeItem('aep_history');
+  renderHistory();
+}
+
+// ══════════════════════════════════════════════════
+// PIPELINE UI
+// ══════════════════════════════════════════════════
+function resetPipeline() {
+  ['ingest','debug','assess','adr','pr'].forEach(s => setStepStatus(s, 'waiting'));
+  document.getElementById('pipelineBadge').textContent = 'Running';
+}
+function setStepStatus(step, status) {
+  const el = document.getElementById('step-' + step);
+  const badge = document.getElementById('ss-' + step);
+  if (!el || !badge) return;
+  el.className = 'pipeline-step ' + (status === 'done' ? 'done' : status === 'running' ? 'active' : '');
+  const labels = { waiting:'Waiting', running:'Running', done:'Done ✓', error:'Error' };
+  badge.textContent = labels[status] || status;
+  badge.className = 'step-status ' + status;
+}
+
+// ══════════════════════════════════════════════════
+// TERMINAL
+// ══════════════════════════════════════════════════
+function clearTerminal() {
+  document.getElementById('terminal').innerHTML = '';
+}
+function addTermLine(type, text) {
+  const terminal = document.getElementById('terminal');
+  const div = document.createElement('div');
+  div.className = 'term-line';
+  const prefix = document.createElement('span');
+  prefix.className = 'term-prefix';
+  prefix.textContent = '›';
+  const span = document.createElement('span');
+  span.className = 'term-text' + (type ? ' ' + type : '');
+  span.textContent = text;
+  div.appendChild(prefix); div.appendChild(span);
+  terminal.appendChild(div);
+  terminal.scrollTop = terminal.scrollHeight;
+}
+function copyTerminal() {
+  const lines = [...document.querySelectorAll('#terminal .term-text')].map(el => el.textContent).join('\n');
+  navigator.clipboard.writeText(lines);
+  showFlash('Terminal copied!');
+}
+
+// ══════════════════════════════════════════════════
+// MISC UTILS
+// ══════════════════════════════════════════════════
+function resetResultsPanel() {
+  document.getElementById('resultsPanel').style.display = 'none';
+  ['analysis','diff','adr','merge'].forEach(t => {
+    const dot = document.getElementById('dot-' + t);
+    if (dot) dot.classList.remove('visible');
+  });
+  switchResultTab('analysis');
+}
+
+function setLoading(on) {
+  const spinner = document.getElementById('mainSpinner');
+  spinner.classList.toggle('visible', on);
+  ['btn-simulate','btn-upload','btn-github'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = on;
+  });
+  if (!on && state.selectedFile) document.getElementById('btn-upload').disabled = false;
+}
+
+function setAlert(id, type, msg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (!msg) { el.className = 'alert'; el.textContent = ''; return; }
+  el.className = 'alert ' + type + ' visible';
+  el.textContent = msg;
+}
+
+function showFlash(msg) {
+  const el = document.getElementById('successFlash');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+function copyDiff() {
+  const diff = [...document.querySelectorAll('#diffViewer .diff-line')].map(el => el.textContent).join('\n');
+  navigator.clipboard.writeText(diff);
+  showFlash('Diff copied!');
+}
+
+function downloadText(content, filename) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type: 'text/plain' }));
+  a.download = filename;
+  a.click();
+  showFlash(`Downloaded: ${filename}`);
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+// Health check
+fetch('/api/health').then(r => r.json()).then(d => {
+  const pill = document.getElementById('healthPill');
+  if (d.status === 'operational') {
+    const geminiStatus = d.gemini_configured ? '· Gemini ✓' : '· Gemini ✗';
+    pill.querySelector('span').textContent = `Online ${geminiStatus}`;
+  }
+}).catch(() => {
+  const pill = document.getElementById('healthPill');
+  pill.querySelector('.status-dot').style.background = 'var(--red)';
+  pill.querySelector('span').textContent = 'Server Offline';
+});
+</script>
 </body>
 </html>
